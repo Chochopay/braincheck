@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ quiz.title }} — BrainCheck{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="quiz-detail-header page-header">
+  <div>
+    <div class="page-header__label">/ quiz.{{ quiz.pk }}</div>
+    <h1 class="page-header__title">{{ quiz.title }}</h1>
+    {% if quiz.description %}
+      <p class="page-header__sub">{{ quiz.description }}</p>
+    {% endif %}
+    <div class="flex-center gap-12 mt-16">
+      {% if quiz.is_published %}
+        <span class="status-badge status-badge--published">Опубликован</span>
+      {% else %}
+        <span class="status-badge status-badge--draft">Черновик</span>
+      {% endif %}
+      <span class="text-mono text-xs text-muted">{{ quiz.get_question_count }} вопросов · {{ quiz.get_attempt_count }} попыток</span>
+    </div>
+  </div>
+
+  {% if user == quiz.author %}
+  <div class="quiz-detail-actions">
+    <!-- Publish toggle -->
+    <form method="post" action="{% url 'publish_quiz' quiz.pk %}">
+      {% csrf_token %}
+      {% if quiz.is_published %}
+        <button type="submit" class="btn btn--ghost">Снять с публикации</button>
+      {% else %}
+        <button type="submit" class="btn">Опубликовать</button>
+      {% endif %}
+    </form>
+
+    <!-- Delete -->
+    <button type="button" class="btn btn--danger" id="delete-btn">Удалить</button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Questions -->
+{% if questions %}
+  <div class="section-title">Вопросы</div>
+  <ul class="question-list">
+    {% for question in questions %}
+    <li class="question-list__item">
+      <div class="question-list__label">Вопрос {{ forloop.counter }}</div>
+      <div class="question-list__text">{{ question.text }}</div>
+      <ul class="choices-display">
+        {% for choice in question.choices.all %}
+        <li {% if choice.is_correct %}class="correct"{% endif %}>
+          {% if choice.is_correct %}<span class="tick">✓</span>{% else %}<span class="tick">○</span>{% endif %}
+          {{ choice.text }}
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">?</div>
+    <div class="empty-state__text">В тесте нет вопросов</div>
+  </div>
+{% endif %}
+
+<!-- Attempts -->
+{% if attempts %}
+  <hr class="divider">
+  <div class="section-title">Последние попытки</div>
+  <table class="attempts-table">
+    <thead>
+      <tr>
+        <th>Пользователь</th>
+        <th>Результат</th>
+        <th>%</th>
+        <th>Дата</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for att in attempts %}
+      <tr>
+        <td>{{ att.user.username }}</td>
+        <td>{{ att.score }} / {{ att.total }}</td>
+        <td>
+          <span class="score-pill {% if att.percentage >= 80 %}score-pill--high{% elif att.percentage >= 50 %}score-pill--mid{% else %}score-pill--low{% endif %}">
+            {{ att.percentage }}%
+          </span>
+        </td>
+        <td class="text-muted text-xs text-mono">{{ att.taken_at|date:"d.m.Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+<!-- Pass link -->
+{% if quiz.is_published %}
+<hr class="divider">
+<div class="flex gap-12">
+  <a href="{% url 'take_quiz' quiz.pk %}" class="btn btn--solid">Пройти тест →</a>
+  <a href="{% url 'home' %}" class="btn btn--ghost">← Назад</a>
+</div>
+{% else %}
+<div class="mt-24">
+  <a href="{% url 'home' %}" class="btn btn--ghost">← Назад</a>
+</div>
+{% endif %}
+
+<!-- Delete Modal -->
+{% if user == quiz.author %}
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <div class="modal__title">Удалить тест?</div>
+    <div class="modal__body">«{{ quiz.title }}» будет удалён навсегда вместе со всеми вопросами и результатами.</div>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" id="cancel-delete">Отмена</button>
+      <form method="post" action="{% url 'delete_quiz' quiz.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--danger">Удалить</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if user == quiz.author %}
+<script>
+  const overlay = document.getElementById('delete-modal');
+  document.getElementById('delete-btn').addEventListener('click', () => overlay.classList.add('active'));
+  document.getElementById('cancel-delete').addEventListener('click', () => overlay.classList.remove('active'));
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+</script>
+{% endif %}
+{% endblock %}

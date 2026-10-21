@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать тест — BrainCheck{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header__label">/ create</div>
+  <h1 class="page-header__title">Новый тест</h1>
+</div>
+
+<form method="post" id="quiz-form">
+  {% csrf_token %}
+  <input type="hidden" name="questions_json" id="questions-json-input">
+
+  <div class="form-block">
+    <!-- Основные поля -->
+    <div class="form-group">
+      <label class="form-label" for="{{ form.title.id_for_label }}">Название</label>
+      {{ form.title }}
+      {% if form.title.errors %}
+        <ul class="form-errors">{% for e in form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Описание</label>
+      {{ form.description }}
+    </div>
+  </div>
+
+  <!-- Question Builder -->
+  <div class="questions-builder" id="questions-builder">
+    <div class="questions-builder__header">
+      <span class="questions-builder__title">Вопросы</span>
+      <span class="text-mono text-xs text-muted" id="q-count">0 вопросов</span>
+    </div>
+    <div id="questions-list"></div>
+    <div class="questions-builder__footer">
+      <button type="button" class="btn btn--ghost btn--sm" id="add-question-btn">+ Добавить вопрос</button>
+    </div>
+  </div>
+
+  <div class="mt-32 flex gap-12">
+    <button type="submit" class="btn btn--solid">Сохранить тест</button>
+    <a href="{% url 'home' %}" class="btn btn--ghost">Отмена</a>
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let questions = [];
+
+function renderQuestions() {
+  const list = document.getElementById('questions-list');
+  document.getElementById('q-count').textContent = questions.length + ' вопросов';
+
+  list.innerHTML = '';
+  questions.forEach((q, qi) => {
+    const item = document.createElement('div');
+    item.className = 'question-item';
+    item.innerHTML = `
+      <div class="question-item__header">
+        <span class="question-item__num">${String(qi + 1).padStart(2, '0')}</span>
+        <div class="question-item__input">
+          <input
+            class="form-input"
+            type="text"
+            placeholder="Текст вопроса..."
+            value="${escHtml(q.text)}"
+            data-qi="${qi}"
+            oninput="updateQuestionText(${qi}, this.value)"
+          >
+        </div>
+        <button type="button" class="question-item__remove" onclick="removeQuestion(${qi})" title="Удалить вопрос">×</button>
+      </div>
+      <div class="choices-list" id="choices-${qi}">
+        ${q.choices.map((c, ci) => renderChoice(qi, ci, c)).join('')}
+        <button type="button" class="add-choice-btn" onclick="addChoice(${qi})">+ вариант</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function renderChoice(qi, ci, c) {
+  return `
+    <div class="choice-row" id="choice-${qi}-${ci}">
+      <input
+        type="radio"
+        class="choice-radio"
+        name="correct-${qi}"
+        ${c.is_correct ? 'checked' : ''}
+        onchange="setCorrect(${qi}, ${ci})"
+        title="Правильный ответ"
+      >
+      <input
+        type="text"
+        class="choice-input"
+        placeholder="Вариант ответа..."
+        value="${escHtml(c.text)}"
+        oninput="updateChoiceText(${qi}, ${ci}, this.value)"
+      >
+      <button type="button" class="choice-remove" onclick="removeChoice(${qi}, ${ci})" title="Удалить">×</button>
+    </div>
+  `;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addQuestion() {
+  questions.push({ text: '', choices: [
+    { text: '', is_correct: true },
+    { text: '', is_correct: false },
+  ]});
+  renderQuestions();
+  // Focus new question input
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('.question-item__input .form-input');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+
+function removeQuestion(qi) {
+  questions.splice(qi, 1);
+  renderQuestions();
+}
+
+function updateQuestionText(qi, val) {
+  questions[qi].text = val;
+}
+
+function addChoice(qi) {
+  questions[qi].choices.push({ text: '', is_correct: false });
+  renderQuestions();
+}
+
+function removeChoice(qi, ci) {
+  if (questions[qi].choices.length <= 2) {
+    alert('Минимум 2 варианта ответа.');
+    return;
+  }
+  const wasCorrect = questions[qi].choices[ci].is_correct;
+  questions[qi].choices.splice(ci, 1);
+  if (wasCorrect && questions[qi].choices.length > 0) {
+    questions[qi].choices[0].is_correct = true;
+  }
+  renderQuestions();
+}
+
+function setCorrect(qi, ci) {
+  questions[qi].choices.forEach((c, i) => c.is_correct = (i === ci));
+}
+
+function updateChoiceText(qi, ci, val) {
+  questions[qi].choices[ci].text = val;
+}
+
+document.getElementById('add-question-btn').addEventListener('click', addQuestion);
+
+document.getElementById('quiz-form').addEventListener('submit', function(e) {
+  // Sync all input values before serializing
+  document.querySelectorAll('[data-qi]').forEach(input => {
+    questions[input.dataset.qi].text = input.value;
+  });
+
+  if (questions.length === 0) {
+    e.preventDefault();
+    alert('Добавь хотя бы один вопрос.');
+    return;
+  }
+
+  for (let i = 0; i < questions.length; i++) {
+    if (!questions[i].text.trim()) {
+      e.preventDefault();
+      alert(`Вопрос ${i + 1}: заполни текст вопроса.`);
+      return;
+    }
+    const hasCorrect = questions[i].choices.some(c => c.is_correct);
+    if (!hasCorrect) {
+      e.preventDefault();
+      alert(`Вопрос ${i + 1}: выбери правильный вариант ответа.`);
+      return;
+    }
+    const hasText = questions[i].choices.some(c => c.text.trim());
+    if (!hasText) {
+      e.preventDefault();
+      alert(`Вопрос ${i + 1}: добавь варианты ответов.`);
+      return;
+    }
+  }
+
+  document.getElementById('questions-json-input').value = JSON.stringify(questions);
+});
+
+// Init with one question
+addQuestion();
+</script>
+{% endblock %}

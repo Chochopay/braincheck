@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ quiz.title }} — Прохождение — BrainCheck{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header__label">/ take</div>
+  <h1 class="page-header__title">{{ quiz.title }}</h1>
+  {% if quiz.description %}
+    <p class="page-header__sub">{{ quiz.description }}</p>
+  {% endif %}
+  <p class="text-mono text-xs text-muted mt-16">{{ questions|length }} вопросов</p>
+</div>
+
+{% if user.is_authenticated %}
+<form method="post" class="take-quiz-form" id="take-form">
+  {% csrf_token %}
+
+  {% for question in questions %}
+  <div class="take-question">
+    <div class="take-question__header">
+      <span class="take-question__num">{{ forloop.counter|stringformat:"02d" }}</span>
+      <span class="take-question__text">{{ question.text }}</span>
+    </div>
+    <ul class="take-choices">
+      {% for choice in question.choices.all %}
+      <li>
+        <label class="take-choice-label">
+          <input type="radio" name="question_{{ question.pk }}" value="{{ choice.pk }}" required>
+          {{ choice.text }}
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+
+  <div class="mt-32 flex gap-12">
+    <button type="submit" class="btn btn--solid">Отправить ответы →</button>
+    <a href="{% url 'home' %}" class="btn btn--ghost">Отмена</a>
+  </div>
+</form>
+{% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">↑</div>
+    <div class="empty-state__text">Войди, чтобы пройти тест</div>
+    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn--solid">Войти</a>
+  </div>
+{% endif %}
+
+{% endblock %}

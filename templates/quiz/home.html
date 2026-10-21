@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Тесты — BrainCheck{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header__label">/ index</div>
+  <h1 class="page-header__title">Тесты</h1>
+  <p class="page-header__sub">Выбери тест и проверь себя</p>
+</div>
+
+<!-- Published quizzes -->
+{% if published %}
+  <div class="section-title">Опубликованные</div>
+  <div class="quiz-grid">
+    {% for quiz in published %}
+    <div class="quiz-card">
+      <div class="quiz-card__index">{{ forloop.counter|stringformat:"02d" }}</div>
+      <div class="quiz-card__title">{{ quiz.title }}</div>
+      {% if quiz.description %}
+        <div class="quiz-card__desc">{{ quiz.description }}</div>
+      {% endif %}
+      <div class="quiz-card__meta">
+        <span>{{ quiz.get_question_count }} вопр.</span>
+        <span>{{ quiz.get_attempt_count }} попыток</span>
+        <span>{{ quiz.author.username }}</span>
+      </div>
+      <div class="quiz-card__actions">
+        <a href="{% url 'take_quiz' quiz.pk %}" class="btn btn--solid btn--sm">Пройти →</a>
+        {% if user == quiz.author %}
+          <a href="{% url 'quiz_detail' quiz.pk %}" class="btn btn--ghost btn--sm">Управление</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">□</div>
+    <div class="empty-state__text">Нет опубликованных тестов</div>
+    {% if user.is_authenticated %}
+      <a href="{% url 'create_quiz' %}" class="btn btn--solid">Создать первый</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- My unpublished quizzes -->
+{% if user.is_authenticated and my_quizzes %}
+  <hr class="divider">
+  <div class="section-title">Мои черновики</div>
+  <div class="quiz-grid">
+    {% for quiz in my_quizzes %}
+      {% if not quiz.is_published %}
+      <div class="quiz-card">
+        <div class="quiz-card__index">draft</div>
+        <div class="quiz-card__title">{{ quiz.title }}</div>
+        {% if quiz.description %}
+          <div class="quiz-card__desc">{{ quiz.description }}</div>
+        {% endif %}
+        <div class="quiz-card__meta">
+          <span>{{ quiz.get_question_count }} вопр.</span>
+        </div>
+        <div class="quiz-card__actions">
+          <a href="{% url 'quiz_detail' quiz.pk %}" class="btn btn--sm">Управление →</a>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Результат — {{ quiz.title }} — BrainCheck{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header__label">/ results</div>
+  <h1 class="page-header__title">Результат</h1>
+</div>
+
+<div class="results-card">
+  <div class="results-score">
+    <div class="results-score__fraction">{{ attempt.score }}<span style="color:var(--grey-300)"> / </span>{{ attempt.total }}</div>
+    <div class="results-score__label">правильных ответов</div>
+    <div class="results-score__bar">
+      <div class="results-score__bar-fill" id="score-bar" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <div class="results-meta">
+    <div class="results-meta__row">
+      <span class="results-meta__key">Тест</span>
+      <span class="results-meta__val">{{ quiz.title }}</span>
+    </div>
+    <div class="results-meta__row">
+      <span class="results-meta__key">Результат</span>
+      <span class="results-meta__val">
+        <span class="score-pill {% if attempt.percentage >= 80 %}score-pill--high{% elif attempt.percentage >= 50 %}score-pill--mid{% else %}score-pill--low{% endif %}">
+          {{ attempt.percentage }}%
+        </span>
+      </span>
+    </div>
+    <div class="results-meta__row">
+      <span class="results-meta__key">Дата</span>
+      <span class="results-meta__val text-mono" style="font-size:0.85rem">{{ attempt.taken_at|date:"d.m.Y H:i" }}</span>
+    </div>
+  </div>
+
+  <div class="results-actions">
+    <a href="{% url 'take_quiz' quiz.pk %}" class="btn">Пройти снова</a>
+    <a href="{% url 'home' %}" class="btn btn--ghost">← Все тесты</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Animate score bar on load
+  window.addEventListener('load', () => {
+    const bar = document.getElementById('score-bar');
+    const pct = {{ attempt.percentage }};
+    setTimeout(() => { bar.style.width = pct + '%'; }, 100);
+  });
+</script>
+{% endblock %}

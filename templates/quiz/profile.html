@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Профиль — {{ user.username }} — BrainCheck{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header__label">/ profile</div>
+  <h1 class="page-header__title">{{ user.username }}</h1>
+  <p class="page-header__sub text-mono" style="font-size:0.85rem">Зарегистрирован: {{ user.date_joined|date:"d.m.Y" }}</p>
+</div>
+
+<div class="section-title">История попыток</div>
+
+{% if attempts %}
+  <table class="attempts-table">
+    <thead>
+      <tr>
+        <th>Тест</th>
+        <th>Результат</th>
+        <th>%</th>
+        <th>Дата</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for att in attempts %}
+      <tr>
+        <td><a href="{% url 'take_quiz' att.quiz.pk %}" style="text-decoration:underline">{{ att.quiz.title }}</a></td>
+        <td class="text-mono">{{ att.score }} / {{ att.total }}</td>
+        <td>
+          <span class="score-pill {% if att.percentage >= 80 %}score-pill--high{% elif att.percentage >= 50 %}score-pill--mid{% else %}score-pill--low{% endif %}">
+            {{ att.percentage }}%
+          </span>
+        </td>
+        <td class="text-muted text-xs text-mono">{{ att.taken_at|date:"d.m.Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon">○</div>
+    <div class="empty-state__text">Ты ещё не проходил тесты</div>
+    <a href="{% url 'home' %}" class="btn btn--solid">Найти тест</a>
+  </div>
+{% endif %}
+
+{% endblock %}

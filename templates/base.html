@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BrainCheck — создавай и проходи тесты">
+  <title>{% block title %}BrainCheck{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="container navbar__inner">
+      <a href="{% url 'home' %}" class="navbar__logo">
+        <span></span>BrainCheck
+      </a>
+      <ul class="navbar__nav">
+        <li><a href="{% url 'home' %}">Тесты</a></li>
+        {% if user.is_authenticated %}
+          <li><a href="{% url 'create_quiz' %}">+ Создать</a></li>
+          <li><a href="{% url 'profile' %}">{{ user.username }}</a></li>
+          <li>
+            <form method="post" action="{% url 'logout' %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit">Выйти</button>
+            </form>
+          </li>
+        {% else %}
+          <li><a href="{% url 'login' %}">Войти</a></li>
+          <li><a href="{% url 'register' %}" class="nav-cta">Регистрация</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+
+  <!-- MESSAGES -->
+  {% if messages %}
+  <ul class="messages">
+    {% for msg in messages %}
+      <li class="{{ msg.tags }}">{{ msg }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <!-- MAIN CONTENT -->
+  <main class="page-content">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <span>BrainCheck</span>
+      <span>{% now "Y" %}</span>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация — BrainCheck{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="page-header">
+    <div class="page-header__label">/ register</div>
+    <h1 class="page-header__title">Регистрация</h1>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="form-group">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      <input
+        class="form-input"
+        type="{{ field.field.widget.input_type }}"
+        name="{{ field.html_name }}"
+        id="{{ field.id_for_label }}"
+        {% if field.value %}value="{{ field.value }}"{% endif %}
+        autocomplete="{{ field.html_name }}"
+      >
+      {% if field.help_text %}
+        <div class="form-help">{{ field.help_text }}</div>
+      {% endif %}
+      {% if field.errors %}
+        <ul class="form-errors">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="mt-24">
+      <button type="submit" class="btn btn--solid btn--full">Создать аккаунт →</button>
+    </div>
+  </form>
+
+  <div class="auth-footer mt-16">
+    Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+  </div>
+</div>
+{% endblock %}
